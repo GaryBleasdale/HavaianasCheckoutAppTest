@@ -1,0 +1,27 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "havaianas-checkout-app-testing"
+client_id = "fa71773e5c6d23d58ec928e0c818620e"
+application_url = "https://completion-barriers-husband-bee.trycloudflare.com"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,write_files,read_files,read_themes,read_checkout_branding_settings,write_checkout_branding_settings"
+
+[auth]
+redirect_urls = [
+  "https://completion-barriers-husband-bee.trycloudflare.com/auth/callback",
+  "https://completion-barriers-husband-bee.trycloudflare.com/auth/shopify/callback",
+  "https://completion-barriers-husband-bee.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2023-10"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "bleasdale-checkout-preview.myshopify.com"
