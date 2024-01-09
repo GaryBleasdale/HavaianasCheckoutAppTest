@@ -1,107 +1,62 @@
-import { useState , useCallback} from "react";
+import { useState, useCallback } from "react";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useActionData, useNavigation, useSubmit } from "@remix-run/react";
-import { Page, TextField, Button } from "@shopify/polaris";
+import {
+  useActionData,
+  useNavigation,
+  useSubmit,
+  useLoaderData,
+} from "@remix-run/react";
+import { Page, Card, Button } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-//   const { admin } = await authenticate.admin(request);
-//   const createdFile = await admin.graphql(
-//     `#graphql
-//   mutation {fileCreate(files: [{alt:"Garys logo",filename:"favicon-image", originalSource:"https://img.icons8.com/?size=256&id=53372&format=png"}]) {
-  
-//     files {
-//       id
-//       alt
-//       createdAt
-//     }
-//   }
-// }
-// `,
-//   );
-
-//   let createdFileParsed = await createdFile.json();
-//   let faviconId = createdFileParsed.data.fileCreate.files[0].id;
-//   console.log(createdFileParsed.data.fileCreate.files[0].id);
-
-  // const response = await admin.graphql(
-  //   `#graphql
-  //   query checkoutProfiles {
-  //     checkoutProfiles(first: 10) {
-  //       nodes {
-  //         id
-  //         isPublished
-  //       }
-  //     }
-  //   }`,
-  // );
-  // const data = await response.json();
-  // const firstNodeId = data.data.checkoutProfiles.nodes[0].id;
-  // console.log(data.data.checkoutProfiles.nodes[0].id);
-
-  // const insertFaviconResponse = await admin.graphql(
-  //   `#graphql
-  //     mutation {
-  //       checkoutBrandingUpsert(
-  //         checkoutBrandingInput: {
-  //           customizations: {
-  //             header: {
-  //               logo: {
-  //                 image: {
-  //                   mediaImageId: "${faviconId}"
-  //                 }
-  //               }
-  //             }
-  //           }
-  //         },
-  //         checkoutProfileId: "${firstNodeId}"
-  //       ) {
-  //         userErrors {
-  //           field
-  //           message
-  //         }
-  //       }
-  //     }
-  //   `
-  // );
-
-  // const insertFaviconData = await insertFaviconResponse.json();
-  // console.log(insertFaviconData);
-  let randomReturn = "randomreturn"
-  return json(randomReturn);
+  const { admin } = await authenticate.admin(request);
+  let checkoutProfiles = await admin.graphql(
+    `#graphql
+    query getCheckoutProfiles {
+    checkoutProfiles(first: 10){
+      edges{
+        node{
+          name
+          id
+        }
+      }
+    }
+  }
+   `,
+  );
+  let checkoutProfilesData = await checkoutProfiles.json();
+  let checkoutProfilesArray = checkoutProfilesData.data.checkoutProfiles.edges;
+  return json({ checkoutProfilesArray });
 };
 
 export async function action({ request }) {
   const { admin } = await authenticate.admin(request);
-
-  let formData = await request.formData();
-  let faviconURL = formData.get("faviconValue")
-  let fileName = formData.get("fileName")
-  const createdFile = await admin.graphql(
+  console.log("running");
+  const getFaviconGID = await admin.graphql(
     `#graphql
-  mutation {fileCreate(files: [{alt:"Garys logo",filename:"${fileName}", originalSource:"${faviconURL}"}]) {
-    files {
-      id
-      alt
-      createdAt
+      query GetFaviconID {
+      files(query: "favicon", first: 1) {
+        edges {
+          node {
+            id
+          }
+        }
+      }
     }
-    userErrors {
-      field
-      message
-    }
-  }
-}
-`,
+    `,
   );
 
-  let createdFileParsed = await createdFile.json();
-  console.log(createdFileParsed,createdFileParsed.data.fileCreate.files, createdFileParsed.data.fileCreate.userErrors, 'hi');
+  let getFaviconGIDResponse = await getFaviconGID.json();
+  console.log(
+    "Favicon ID: ",
+    getFaviconGIDResponse.data.files.edges[0].node.id,
+  );
 
-  let faviconId = createdFileParsed.data.fileCreate.files[0].id
-  console.log(faviconId, 'favicon id')
+  let faviconId = getFaviconGIDResponse.data.files.edges[0].node.id;
 
-    const response = await admin.graphql(
+  const response = await admin.graphql(
     `#graphql
     query checkoutProfiles {
       checkoutProfiles(first: 10) {
@@ -115,16 +70,21 @@ export async function action({ request }) {
   const data = await response.json();
   const firstNodeId = data.data.checkoutProfiles.nodes[0].id;
   console.log(data.data.checkoutProfiles.nodes[0].id);
-  console.log(firstNodeId, 'first node id')
+  console.log(firstNodeId, "first node id");
 
   const insertFaviconResponse = await admin.graphql(
     `#graphql
-      mutation {
-        checkoutBrandingUpsert(checkoutProfileId: ${firstNodeId}){
-          "checkoutBrandingInput": {
-            "customizations": {
-              "favicon": {
-                "mediaImageId": "${faviconId}"
+      mutation checkoutBrandingUpsert{
+        checkoutBrandingUpsert(
+        checkoutProfileId: "${firstNodeId}"
+        checkoutBrandingInput:{ customizations: { favicon: { mediaImageId: "${faviconId}" } } }
+        ){
+          checkoutBranding{
+            customizations{
+              favicon{
+                image{
+                  url
+                }
               }
             }
           }
@@ -134,39 +94,63 @@ export async function action({ request }) {
           }
         }
       }   
-    `);
+    `,
+  );
 
   const insertFaviconData = await insertFaviconResponse.json();
-  console.log(insertFaviconData.data.checkoutBrandingUpsert.userErrors, 'last console log');
+  console.log(
+    insertFaviconData.data.checkoutBrandingUpsert.checkoutBranding
+      .customizations,
+    "last console log",
+  );
 
-  return(json({message: "Image sync commencing. Please wait for success message",
-  success: true, }))
+  return json({
+    message: "Image sync commencing. Please wait for success message",
+    success: true,
+  });
 }
 
 export default function Index() {
-
   const [faviconValue, setFavicon] = useState("");
-  const [fileName,setFileName] = useState("");
+  const [fileName, setFileName] = useState("");
+  const checkoutProfilesObj = useLoaderData<typeof loader>();
+  console.log(checkoutProfilesObj);
 
   const submit = useSubmit();
-  
-  const handleChange = useCallback(
-    (newFaviconValue: string) => { setFavicon(newFaviconValue)
-    let fileType = newFaviconValue.match(/\.[^.]*$/)
-    setFileName(`Favicon${fileType}`);  
-    },
-    [],
-  );
 
-  const submitFavicon = ()=> 
-  submit({ faviconValue, fileName }, { replace: true, method: "POST" });
-  
+  const submitFavicon = () =>
+    submit({ faviconValue, fileName }, { replace: true, method: "POST" });
 
   return (
-      <Page>
-        Havaianas Checkout App
-        <TextField label="Favicon URL" value={faviconValue} onChange ={handleChange}/>
-        <Button onClick={submitFavicon}>Add Favicon to Checkout</Button>
-      </Page>
+    <Page>
+      Havaianas Checkout App
+      <Card>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              flexDirection: "column",
+            }}
+          >
+            <h1>Add Favicon to Checkout</h1>
+            <p>
+              Upload an image to the store's Files, and name it "Favicon". Then,
+              press the "Add Favicon" Button to apply it to your checkout
+            </p>
+            <Button size="medium" onClick={submitFavicon}>
+              Add Favicon to Checkout
+            </Button>
+          </div>
+          <div>
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/972/972623.png"
+              style={{ width: "100px" }}
+            />
+          </div>
+        </div>
+      </Card>
+    </Page>
   );
 }
