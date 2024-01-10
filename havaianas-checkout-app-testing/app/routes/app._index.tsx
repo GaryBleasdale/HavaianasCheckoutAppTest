@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import {
@@ -7,7 +7,7 @@ import {
   useSubmit,
   useLoaderData,
 } from "@remix-run/react";
-import { Page, Card, Button } from "@shopify/polaris";
+import { Page, Card, Button, Select } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -33,7 +33,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export async function action({ request }) {
   const { admin } = await authenticate.admin(request);
-  console.log("running");
+  const formData = await request.formData();
+  const selectedCheckoutProfile = formData.get("selectedCheckoutProfile");
   const getFaviconGID = await admin.graphql(
     `#graphql
       query GetFaviconID {
@@ -76,7 +77,7 @@ export async function action({ request }) {
     `#graphql
       mutation checkoutBrandingUpsert{
         checkoutBrandingUpsert(
-        checkoutProfileId: "${firstNodeId}"
+        checkoutProfileId: "${selectedCheckoutProfile}"
         checkoutBrandingInput:{ customizations: { favicon: { mediaImageId: "${faviconId}" } } }
         ){
           checkoutBranding{
@@ -111,19 +112,51 @@ export async function action({ request }) {
 }
 
 export default function Index() {
-  const [faviconValue, setFavicon] = useState("");
-  const [fileName, setFileName] = useState("");
-  const checkoutProfilesObj = useLoaderData<typeof loader>();
-  console.log(checkoutProfilesObj);
-
+  const [checkoutProfiles, setCheckoutProfiles] = useState([]);
+  const [selectedCheckoutProfile, setSelected] = useState("");
+  const checkoutProfilesObj = useLoaderData();
   const submit = useSubmit();
 
-  const submitFavicon = () =>
-    submit({ faviconValue, fileName }, { replace: true, method: "POST" });
+  useEffect(() => {
+    (function createCheckoutProfilesArray() {
+      let checkoutProfilesArray = [];
+      for (
+        let i = 0;
+        i < checkoutProfilesObj.checkoutProfilesArray.length;
+        i++
+      ) {
+        checkoutProfilesArray.push({
+          label: checkoutProfilesObj.checkoutProfilesArray[i].node.name,
+          value: checkoutProfilesObj.checkoutProfilesArray[i].node.id,
+        });
+      }
+      setSelected(checkoutProfilesArray[0].value);
+      setCheckoutProfiles(checkoutProfilesArray);
+    })();
+  }, []);
+
+  const handleSelectChange = useCallback(
+    (value: string) => setSelected(value),
+    [],
+  );
+
+  const applyFavicon = () =>
+    submit({ selectedCheckoutProfile }, { replace: true, method: "POST" });
+
+  console.log(checkoutProfiles, "checkout profiles 2");
+  console.log(selectedCheckoutProfile, "selected");
 
   return (
     <Page>
       Havaianas Checkout App
+      <Card>
+        <Select
+          label="Checkout Profiles (select which one to apply changes to)"
+          options={checkoutProfiles}
+          onChange={handleSelectChange}
+          value={selectedCheckoutProfile}
+        />
+      </Card>
       <Card>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div
@@ -139,7 +172,7 @@ export default function Index() {
               Upload an image to the store's Files, and name it "Favicon". Then,
               press the "Add Favicon" Button to apply it to your checkout
             </p>
-            <Button size="medium" onClick={submitFavicon}>
+            <Button size="medium" onClick={applyFavicon}>
               Add Favicon to Checkout
             </Button>
           </div>

@@ -2,7 +2,7 @@
 
 name = "havaianas-checkout-app-testing"
 client_id = "fa71773e5c6d23d58ec928e0c818620e"
-application_url = "https://kevin-faced-feelings-subtle.trycloudflare.com"
+application_url = "https://signup-pulse-trust-ending.trycloudflare.com"
 embedded = true
 
 [access_scopes]
@@ -11,9 +11,9 @@ scopes = "write_products,write_files,read_files,read_themes,read_checkout_brandi
 
 [auth]
 redirect_urls = [
-  "https://kevin-faced-feelings-subtle.trycloudflare.com/auth/callback",
-  "https://kevin-faced-feelings-subtle.trycloudflare.com/auth/shopify/callback",
-  "https://kevin-faced-feelings-subtle.trycloudflare.com/api/auth/callback"
+  "https://signup-pulse-trust-ending.trycloudflare.com/auth/callback",
+  "https://signup-pulse-trust-ending.trycloudflare.com/auth/shopify/callback",
+  "https://signup-pulse-trust-ending.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
